@@ -5,7 +5,7 @@ module Suitcase
 
   class Configuration
     class << self
-      attr_accessor :hostname, :hotel_api_key, :hotel_cid, :hotel_shared_secret, 
+      attr_accessor :hostname, :hostname_booking, :hotel_api_key, :hotel_cid, :hotel_shared_secret, 
                     :hotwire_api_key, :hotwire_linkshare_id
 
       attr_reader :cache

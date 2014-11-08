@@ -18,6 +18,7 @@ First, configure the library:
 ```ruby
 Suitcase.configure do |config|
   config.hostname = "..."  # typically dev.api.ean.com or api.ean.com
+  config.hostname_booking = "..."  # book.api.ean.com (documentation wrong, in dev post to book.ape.ean.com)
   config.hotel_api_key = "..." # set the Hotel API key from developer.ean.com
   config.hotel_cid = "..." # set the CID from developer.ean.com
   config.cache = Hash.new # set the caching mechanism (see below)

@@ -67,12 +67,13 @@ module Suitcase
 
       # Internal: Get the root URL for the Hotels API.
       #
-      # secure - Whether or not the URL should be HTTPS or not.
+      # booking - booking uses a different enpoint and https
       #
       # Returns the URL.
-      def main_url(secure)
-        url = "http#{secure ? "s" : ""}://#{secure ? "book." : ""}"
-        url += (Configuration.hostname ||= "api.ean.com") + "/ean-services/rs/hotel/v3/"
+      def main_url(booking)
+        url = "http#{booking ? "s" : ""}://"
+        url += "#{booking ? (Configuration.hostname_booking ||= "book.api.ean.com") : (Configuration.hostname ||= "api.ean.com")}"
+        url += "/ean-services/rs/hotel/v3/"
         url
       end
 
@@ -142,7 +143,6 @@ module Suitcase
           elsif message =~ /Data in this request could not be validated/
             exception.type = :invalid_data
           end
-
           raise exception
         end
       end

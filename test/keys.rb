@@ -13,15 +13,17 @@ Suitcase.configure do |config|
   # config.hotel_shared_secret = "none"
   # config.use_signature_auth = false
 end
-
+# @see http://developer.ean.com/docs/test-booking-procedures/
 module Keys
+
   RESERVATION_START_TIME = Chronic.parse("1 week from now").strftime("%m/%d/%Y")
   RESERVATION_END_TIME = Chronic.parse("2 weeks from now").strftime("%m/%d/%Y")
 
   SUITCASE_PAYMENT_OPTION = Suitcase::Hotel::PaymentOption.find(currency_code: "USD").find { |po| po.name =~ /Master/ }
+  CREDIT_CARD_TYPE = "MC"
   CREDIT_CARD_NUMBER_TESTING = "5401999999999999"
   CREDIT_CARD_CVV_TESTING = "123"
-  CREDIT_CARD_EXPIRATION_DATE_TESTING = "2014/03/01"
+  CREDIT_CARD_EXPIRATION_DATE_TESTING = (Time.now.to_date.beginning_of_year + 5.years).strftime("%m/%d/%Y")
 
   SENDING_EMAIL = "testemail@gmail.com"
 
@@ -31,6 +33,7 @@ module Keys
     last_name: "Test Booking",
     home_phone: "1231231234",
     payment_option: SUITCASE_PAYMENT_OPTION,
+    credit_card_type: CREDIT_CARD_TYPE,
     credit_card_number: CREDIT_CARD_NUMBER_TESTING, 
     credit_card_verification_code: CREDIT_CARD_CVV_TESTING,
     credit_card_expiration_date: CREDIT_CARD_EXPIRATION_DATE_TESTING,

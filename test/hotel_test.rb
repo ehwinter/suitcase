@@ -52,7 +52,7 @@ describe Suitcase::Hotel do
       arrival = Chronic.parse('1 month from now').strftime('%m/%d/%Y')
       departure = Chronic.parse('5 weeks from now').strftime('%m/%d/%Y')
       @result = Suitcase::Hotel.find(
-        arrival: arrival, 
+        arrival: arrival,
         departure: departure,
         location: "Boston",
         rooms: [{ adults: 1 }],
@@ -80,7 +80,7 @@ describe Suitcase::Hotel do
       types.first.must_equal Suitcase::Hotel
     end
   end
-  
+
   describe "error handling" do
     before :each do
       begin
@@ -95,7 +95,7 @@ describe Suitcase::Hotel do
         Suitcase::Hotel.find(location: "No such place exists")
       end
     end
-    
+
     it "should set the raw API results on the Exception" do
       @exception.raw.wont_be_nil
     end

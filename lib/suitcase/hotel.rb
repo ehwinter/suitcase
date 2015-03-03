@@ -80,6 +80,9 @@ module Suitcase
       #
       # params - A Hash of search query parameters, unchanged from the find
       #           method:
+      #           Destination, pick one:
+      #           1) :hotel_id_list   - String "1234,4567,45645"
+      #           2) :location        - String "Boston, MA"
       #           :arrival            - String date of arrival, written
       #                                 MM/DD/YYYY.
       #           :departure          - String date of departure, written
@@ -104,11 +107,23 @@ module Suitcase
           departureDate: params[:departure],
           numberOfResults: params[:number_of_results],
           includeDetails: params[:include_details],
-          includeHotelFeeBreakdown: params[:fee_breakdown],
-          destinationString: params[:location]
-        }.merge(room_group_params)
+          includeHotelFeeBreakdown: params[:fee_breakdown]
+        }.merge(destination_hash(params)).merge(room_group_params)
 
         hotel_list(req_params)
+      end
+
+      # Internal: hotels_list can take either a destination string or a list of hotel ids
+      # @return destination Hash for use in hotel_list
+      def destination_hash(params)
+        params[:hotel_id_list] ? {hotelIdList: params[:hotel_id_list]} : {destinationString: params[:location]}
+      end
+
+      # Internal: hotels_list can take either a destination string or a list of hotel ids
+      # @param hotel_ids Array of integers
+      # @return hotel_id_list formatted for EAN: "12345,83838,84443"
+      def hotel_id_list(hotel_ids)
+        hotel_ids ? hotel_ids.join(",") : ""
       end
 
       # Internal: Run a 'dateless' search for Hotels.
@@ -120,7 +135,7 @@ module Suitcase
       def dateless_search(params)
         hotel_list(destinationString: params[:location])
       end
-      
+
       # Internal: Format the room group expected by the EAN API.
       #
       # rooms - Array of Hashes:
@@ -135,7 +150,6 @@ module Suitcase
           params["room#{room_n}"] = [room[:adults], room[:children]].
                                         flatten.join(",")
         end
-
         params
       end
 
@@ -167,14 +181,11 @@ module Suitcase
         req_params = req_params.delete_if { |k, v| v == nil }
 
         req = Patron::Session.new
-        params_string = req_params.inject("") do |initial, (key, value)|
+        params_string = req_params.map do |key, value|
           value = (value == true ? "true" : value)
-          initial + if value
-                      req.urlencode(key.to_s) + "=" + req.urlencode(value) + "&"
-                    else
-                      ""
-                    end
-        end
+          req.urlencode(key.to_s) + "=" + req.urlencode(value.to_s) if value
+        end.compact.join("&")
+
         req.timeout = 30
         req.base_url = base_url(false) # not a booking request
         res = req.get("/ean-services/rs/hotel/v3/list?#{params_string}")
@@ -190,7 +201,6 @@ module Suitcase
       # Raises Suitcase::Hotel::EANEexception if the EAN API returns an error.
       def parse_hotel_list(body)
         root = JSON.parse(body)["HotelListResponse"]
-
         if error = root["EanWsError"]
           handle(error)
         else hotels = [root["HotelList"]["HotelSummary"]].flatten
@@ -223,7 +233,7 @@ module Suitcase
               hotel.proximity_unit = data["proximityUnit"]
               hotel.in_destination = data["hotelInDestination"]
               hotel.thumbnail_path = data["thumbNailUrl"]
-              hotel.ian_url = data["deepLink"]
+              hotel.ean_url = data["deepLink"]
               if data["RoomRateDetailsList"]
                 hotel.rooms = parse_rooms(data["RoomRateDetailsList"])
               end
@@ -231,7 +241,7 @@ module Suitcase
           end
         end
       end
-      
+
       # Internal: Parse room data from a Hotel response.
       #
       # room_details - Hash of room details returned by the API.
@@ -241,7 +251,7 @@ module Suitcase
         rate_details = [room_details["RoomRateDetails"]].flatten
         rate_details.map { |rd| Room.new(rd) }
       end
-        
+
       # Internal: Handle errors returned by the API.
       #
       # error - The parsed error Hash returned by the API.
@@ -249,7 +259,7 @@ module Suitcase
       # Raises an EANException with the parameters returned by the API.
       def handle(error)
         message = error["presentationMessage"]
-      
+
         e = EANException.new(message)
         if error["itineraryId"] != -1
           e.reservation_made = true
@@ -258,10 +268,10 @@ module Suitcase
         e.verbose_message = error["verboseMessage"]
         e.recoverability = error["handling"]
         e.raw = error
-        
+
         raise e
       end
-      
+
       # Internal: Parse the amenities of a Hotel.
       #
       # mask - Integer mask of the amenities.
@@ -296,7 +306,7 @@ module Suitcase
                   :amenities, :tripadvisor_rating, :location_description,
                   :short_description, :high_rate, :low_rate, :currency,
                   :latitude, :longitude, :proximity_distance, :proximity_unit,
-                  :in_destination, :thumbnail_path, :ian_url, :rooms
+                  :in_destination, :thumbnail_path, :ean_url, :rooms
 
     # Internal: Create a new Hotel.
     #
@@ -320,26 +330,26 @@ module Suitcase
         @url, @params, @raw, @value = url, params, raw, value
       end
     end
-    
+
     # Internal: The general Exception class for Exceptions caught form the Hotel
     #           API.
     class EANException < Exception
       # Public: The raw error returned by the API.
       attr_accessor :raw
-      
+
       # Public: The verbose message returned by the API.
       attr_accessor :verbose_message
-      
+
       # Public: The ID of the reservation made in the errant
       #         request if a reservation completed.
       attr_accessor :reservation_id
 
       # Public: The recoverability of the error (direct from the) API.
       attr_accessor :recoverability
-      
+
       # Internal: Writer for the boolean whether a reservation was made.
       attr_writer :reservation_made
-      
+
       # Public: Reader for the boolean whether a reservation was made. If a
       #         reservation was completed `reservation_id' will contain the
       #         reservation ID.
@@ -347,11 +357,11 @@ module Suitcase
         @reservation_made
       end
     end
-    
+
     # Internal: Representation of room availability as returned by the API.
     class Room
       Promotion = Struct.new(:id, :description, :details)
-      
+
       attr_accessor :room_type_code, :rate_code, :rate_key, :max_occupancy,
                     :quoted_occupancy, :minimum_age, :description, :promotion,
                     :allotment, :available, :restricted, :expedia_id

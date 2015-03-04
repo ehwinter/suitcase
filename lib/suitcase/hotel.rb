@@ -387,6 +387,7 @@ module Suitcase
         @expedia_id = room_details["expediaPropertyId"]
       end
     end
+
   end
 end
 

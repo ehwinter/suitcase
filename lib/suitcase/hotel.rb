@@ -41,22 +41,6 @@ module Suitcase
       # requires dates, rooms, and a destination to search. The other is a
       # 'dateless' search, which finds all hotels in a given area.
       #
-      # params - A Hash of search query parameters:
-      #           :arrival            - String date of arrival, written
-      #                                 MM/DD/YYYY (defult: nil).
-      #           :departure          - String date of departure, written
-      #                                 MM/DD/YYYY (default: nil).
-      #           :number_of_results  - Number of results to return
-      #                                 (default: 20). Does not apply to
-      #                                 dateless requests.
-      #           :rooms              - An Array of Hashes, within each Hash
-      #                                 (default: nil):
-      #                                 :adults   - Number of adults in the
-      #                                             room.
-      #                                 :children - Array of childrens' ages in
-      #                                             the room. (default: [])
-      #           :include_details    - Boolean. Include extra information with
-      #                                 each room option.
       # Examples:
       #
       #   Hotel.find(location: "Boston")
@@ -67,32 +51,26 @@ module Suitcase
       #   # => #<Result [all hotels in Boston with their rooms available from
       #                 14 Mar 2014 to 21 Mar 2014]>
       #
-      # Returns a Result with the search results.
-      def find(params)
-        if params[:arrival]
-          availability_search(params)
-        else
-          dateless_search(params)
-        end
-      end
-
-      # Internal: Run an availability search for Hotels.
       #
       # params - A Hash of search query parameters, unchanged from the find
       #           method:
       #           Destination, pick one:
-      #           1) :hotel_id_list   - String "1234,4567,45645"
-      #           2) :location        - String "Boston, MA"
+      #           :hotel_id_list   - String "1234,4567,45645"
+      #           :location        - String "Boston, MA"
+      #
+      #           Availability Parameters
       #           :arrival            - String date of arrival, written
       #                                 MM/DD/YYYY.
       #           :departure          - String date of departure, written
       #                                 MM/DD/YYYY.
-      #           :number_of_results  - Integer number of results to return.
+      #           :number_of_results  - Integer number of results to return (optional)
       #           :rooms              - An Array of Hashes, within each Hash:
       #                                 :adults   - Integer number of adults in
       #                                             the room.
       #                                 :children - Array of childrens' Integer
       #                                             ages in the room.
+      #
+      #           Other Parameters:
       #           :include_details    - Boolean. Whether to include extra
       #                                 information with each room option, such
       #                                 as bed types.
@@ -100,15 +78,11 @@ module Suitcase
       #                                 breakdown information with room results.
       #
       # Returns a Result with search results.
-      def availability_search(params)
-        room_group_params = room_group_params(params[:rooms])
+      def find(params)
         req_params = {
-          arrivalDate: params[:arrival],
-          departureDate: params[:departure],
-          numberOfResults: params[:number_of_results],
           includeDetails: params[:include_details],
           includeHotelFeeBreakdown: params[:fee_breakdown]
-        }.merge(destination_hash(params)).merge(room_group_params)
+        }.merge(availability_hash(params)).merge(destination_hash(params))
 
         hotel_list(req_params)
       end
@@ -126,15 +100,6 @@ module Suitcase
         hotel_ids ? hotel_ids.join(",") : ""
       end
 
-      # Internal: Run a 'dateless' search for Hotels.
-      #
-      # params - A Hash of search query parameters, generally just a location:
-      #           :location - String user-inputted location.
-      #
-      # Returns a Result with search results.
-      def dateless_search(params)
-        hotel_list(destinationString: params[:location])
-      end
 
       # Internal: Format the room group expected by the EAN API.
       #
@@ -145,13 +110,26 @@ module Suitcase
       # Returns a Hash of request parameters.
       def room_group_params(rooms)
         params = {}
-        rooms.each_with_index do |room, index|
-          room_n = index + 1
-          params["room#{room_n}"] = [room[:adults], room[:children]].
-                                        flatten.join(",")
+        if rooms
+          rooms.each_with_index do |room, index|
+            room_n = index + 1
+            params["room#{room_n}"] = [room[:adults], room[:children]].
+                                          flatten.join(",")
+          end
         end
         params
       end
+
+      # Internal: Format availability params expected by the EAN API.
+      #
+      # Returns a Hash of the availability request parameters or empty Hash for a 'dateless' request
+      def availability_hash(params)
+        return {} unless params[:arrival] && params[:departure] && params[:rooms]
+        {arrivalDate: params[:arrival], departureDate: params[:departure]}.
+          merge(room_group_params(params[:rooms])).
+          merge(numberOfResults: params[:number_of_results]) #number_of_results is only utilized along with availability
+      end
+
 
       # Internal: Complete the request for a Hotel list.
       #
@@ -179,7 +157,6 @@ module Suitcase
         req_params[:apiKey] = Suitcase.configuration[:api_key]
         req_params[:minorRev] = Suitcase.configuration[:minor_rev]
         req_params = req_params.delete_if { |k, v| v == nil }
-
         req = Patron::Session.new
         params_string = req_params.map do |key, value|
           value = (value == true ? "true" : value)
@@ -387,6 +364,7 @@ module Suitcase
         @expedia_id = room_details["expediaPropertyId"]
       end
     end
+
   end
 end
 

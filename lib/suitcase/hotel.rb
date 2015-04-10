@@ -283,7 +283,7 @@ module Suitcase
                   :amenities, :tripadvisor_rating, :location_description,
                   :short_description, :high_rate, :low_rate, :currency,
                   :latitude, :longitude, :proximity_distance, :proximity_unit,
-                  :in_destination, :thumbnail_path, :ean_url, :rooms
+                  :in_destination, :thumbnail_path, :ean_url, :rooms, :images
 
     # Internal: Create a new Hotel.
     #

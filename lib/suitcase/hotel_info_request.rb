@@ -5,13 +5,21 @@ module Suitcase
 
     attr_accessor :result
 
+
     attr_accessor :hotel_details, :hotel_images, :hotel_summary, :property_amenities, :room_types, :suppliers
+
+    attr_accessor :hotel_id
+    attr_accessor :customer_session_id
 
     def self.parse_info(body)
       parsed = {}
       root = JSON.parse(body)["HotelInformationResponse"]
       if root
-        parsed[:hotel_images] = HotelImage.images(root["HotelImages"]) if root["HotelImages"]
+        parsed[:hotel_images] =            HotelImage.array_parse(root["HotelImages"]) if root["HotelImages"]
+        parsed[:property_amenities] = PropertyAmenity.array_parse(root["PropertyAmenities"]) if root["PropertyAmenities"]
+        parsed[:hotel_details] = HotelDetails.new(root["HotelDetails"]) if root["HotelDetails"]
+        parsed[:hotel_summary] = HotelSummary.new(root["HotelSummary"]) if root["HotelSummary"]
+        parsed[:customer_session_id] = root[Utils.eanize_key(:customer_session_id)]
       end
       parsed
     end
@@ -37,6 +45,9 @@ module Suitcase
       if ruby_req_params
         @result = self.class.request(ruby_req_params)
         @hotel_images = @result.value[:hotel_images]
+        @property_amenities = @result.value[:property_amenities]
+        @hotel_details = @result.value[:hotel_details]
+        @hotel_summary = @result.value[:hotel_summary]
       end
     end
 

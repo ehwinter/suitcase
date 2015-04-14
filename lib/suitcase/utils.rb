@@ -27,8 +27,18 @@ module Suitcase
         camel_case_key.to_s.underscore.to_sym
       end
 
-      def eanize_key(snake_case_key)
-        snake_case_key.to_s.camelize(:lower).to_sym
+      # EAN keys come in three variants:
+      # "lower" lower camel case (most typical) for request parameters and response attributes e.g. "stateProvinceCode"
+      # "upper" upper camel case for response elements e.g. "HotelSummary" as in: HotelSummary.stateProvinceCode
+      # "at"    at prefixed ( @ + lower cc) for attributes associated with elements e.g. "@size" for each array, "@hotelId" for superfluous hotel_id in HotelInfo
+      def eanize_key(snake_case_key, ean_type="lower")
+        if ean_type == "upper"
+          snake_case_key.to_s.camelize(:upper)
+        elsif ean_type == "at"
+          "@" + snake_case_key.to_s.camelize(:lower)
+        else
+          snake_case_key.to_s.camelize(:lower)
+        end
       end
 
       # Given EAN style request_params generate

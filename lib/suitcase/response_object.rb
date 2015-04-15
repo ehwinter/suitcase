@@ -13,7 +13,13 @@ module Suitcase
         send(Utils.rubyize_key(k).to_s+"=",v.to_i) if v
       end
       ean_response_object.select{|k,v| attribute_names(false,:string).include?(k)}.each do |k,v|
-        send(Utils.rubyize_key(k).to_s+"=",v) if v && !v.empty?
+        if v
+          if v.kind_of?(String)
+            send(Utils.rubyize_key(k).to_s+"=",v) if !v.empty?
+          else
+            send(Utils.rubyize_key(k).to_s+"=",v) # some string are decoded to ints
+          end
+        end
       end
       ean_response_object.select{|k,v| attribute_names(false,:float).include?(k)}.each do |k,v|
         send(Utils.rubyize_key(k).to_s+"=",v.to_f) if v

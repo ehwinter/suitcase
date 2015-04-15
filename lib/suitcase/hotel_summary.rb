@@ -8,7 +8,7 @@ module Suitcase
     attr_accessor :high_rate, :hotel_rating, :latitude, :longitude, :low_rate
     # integers
     attr_accessor :hotel_id, :property_category
-    # string
+    # string (note: postal code read as an integer)
     attr_accessor :address1, :airport_code, :city, :country_code, :location_description, :name, :postal_code, :rate_currency_code, :state_province_code
 
 

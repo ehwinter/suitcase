@@ -50,7 +50,7 @@ module Suitcase
         req_params[:cid] = Suitcase.configuration[:cid]
         req_params[:apiKey] = Suitcase.configuration[:api_key]
         req_params[:minorRev] = Suitcase.configuration[:minor_rev]
-
+        req_params[:apiExperience] = Suitcase.configuration[:api_experience]
         req_params = req_params.delete_if { |k, v| v == nil }
 
         params_string = req_params.map do |key, value|
